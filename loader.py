@@ -12,6 +12,8 @@ class Turbofandataset(Dataset):
         self.length = []
         self.mode = mode
 
+        self.max_rul = 200
+
         if self.mode == 'test' and rul_result is not None:
             self.rul_result = np.loadtxt(fname=rul_result, dtype=np.float32)
         if self.mode == 'test' and rul_result is None:
@@ -24,10 +26,12 @@ class Turbofandataset(Dataset):
             warnings.warn('This rul_result file will only be used in the test set, '
                           'and the current you selected is training, so the file will be ignored.')
 
-        if self.mode == 'train':
-            self.max_rul = np.max(self.data[:, [1]], axis=0)
-        if self.mode == 'test':
-            self.max_rul = np.max(self.rul_result, axis=0)
+        # if self.mode == 'train':
+        #     self.max_rul = np.max(self.data[:, [1]], axis=0)
+        #     print(self.max_rul)
+        # if self.mode == 'test':
+        #     self.max_rul = np.max(self.rul_result, axis=0)
+        #     print(self.max_rul)
 
     def rest_useful_life(self, engineID):
         rul = np.sum(self.data[:, [0]] == engineID)
