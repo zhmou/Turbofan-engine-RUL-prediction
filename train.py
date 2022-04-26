@@ -3,13 +3,14 @@ import numpy as np
 
 
 class Trainer:
-    def __init__(self, model, model_optimizer, print_every, epochs=200, device='cpu'):
+    def __init__(self, model, model_optimizer, print_every, epochs=200, device='cpu', prefix='FD001'):
         self.model = model.to(device)
         self.model_optimizer = model_optimizer
         self.print_every = print_every
         self.epochs = epochs
         self.device = device
         self.criterion = torch.nn.MSELoss()
+        self.prefix = prefix
 
     def train_single_epoch(self, dataloader):
         running_loss = 0
@@ -49,8 +50,8 @@ class Trainer:
             'state_dict': self.model.state_dict(),
             'optim_dict': self.model_optimizer.state_dict()
         }
-        torch.save(state, './checkpoints/' + str(epoch) + '.pth.tar')
-
+        torch.save(state, './checkpoints/' + self.prefix + '_' + str(epoch) + '.pth.tar')
+        print('checkpoints saved successfully!')
 
     @staticmethod
     def score(y_true, y_pred):
@@ -75,9 +76,9 @@ class Trainer:
                 inputs, handcrafted_feature, labels = inputs.to(self.device), handcrafted_feature.to(self.device), labels.to(self.device)
                 predictions = self.model(inputs, handcrafted_feature)
                 '''
-                    don't change the multiplier(130) here unless you changed the value of max_rul in turbofandataset.py
+                    don't change the multiplier(130 or 150) here unless you changed the value of max_rul in turbofandataset.py
                 '''
-                score += self.score(labels * 130, predictions * 130)
-                loss += criterion(labels * 130, predictions * 130)
+                score += self.score(labels * 150, predictions * 150)
+                loss += criterion(labels * 150, predictions * 150)
 
         print('test result: score: {}, RMSE: {}'.format(score.item(), loss ** 0.5))

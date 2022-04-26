@@ -14,7 +14,7 @@ inputs_test = full_test[:, 2:]
 # to avoid devide zero
 eps = 1e-12
 
-# if you want to try standardiztion:
+# For those who want to try standardiztion:
 # mu = np.mean(inputs, axis=0)
 # sigma = np.std(inputs, axis=0)
 # standard = (inputs - mu) / (sigma + eps)

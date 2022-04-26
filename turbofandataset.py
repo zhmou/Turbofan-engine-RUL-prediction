@@ -5,21 +5,22 @@ from torch.utils.data import Dataset
 
 
 class Turbofandataset(Dataset):
-    def __init__(self, mode='train', dataset=None, rul_result=None, handcrafted_features=None):
+    def __init__(self, mode='train', dataset=None, rul_result=None):
         self.data = np.loadtxt(fname=dataset, dtype=np.float32)
+        self.data = np.delete(self.data, [5, 9, 10, 14, 20, 22, 23], axis=1)
         self.window_size = 30
-        self.sample_num = self.data[-1][0]
+        self.sample_num = int(self.data[-1][0])
         self.length = []
         self.mode = mode
-        self.handcrafted_features = np.loadtxt(fname=handcrafted_features, dtype=np.float32)
 
-        # piece-wise linear RUL target function
         '''
+        piece-wise linear RUL target function
+
         ATTENTION:
             if you changed the value of max_rul, you need to adjust the multiplier of the output result.
             (at the line 77, 78 of train.py)
         '''
-        self.max_rul = 130
+        self.max_rul = 150
 
         if self.mode == 'test' and rul_result is not None:
             self.rul_result = np.loadtxt(fname=rul_result, dtype=np.float32)
@@ -29,61 +30,78 @@ class Turbofandataset(Dataset):
         if self.mode != 'test' and self.mode != 'train':
             raise ValueError('You chose an undefined mode, '
                              'please check if the parameters you passed in are correct.')
-        if self.handcrafted_features is None:
-            raise ValueError('You did not specify the handcrafted_features file path, '
-                             'please check if the parameters you passed in are correct.')
         if self.mode == 'train' and rul_result is not None:
             warnings.warn('This rul_result file will only be used in the test set, '
-                          'and the current you selected is training, so the file will be ignored.')
+                          'and the current mode you selected is training, so the file will be ignored.')
 
-    def max_time_cycle(self, engineID):
-        max_time = np.sum(self.data[:, [0]] == engineID)
-        return max_time
+        self.x = []
+        self.mean_and_coef = []
+        self.y = []
+
+        if self.mode == 'train':
+            for i in range(1, self.sample_num + 1):
+                ind = np.where(self.data[:, 0] == i)
+                # transfer tuple to ndarray
+                ind = ind[0]
+                # single engine data
+                data_temp = self.data[ind, :]
+                for j in range(len(data_temp) - self.window_size + 1):
+                    self.x.append(data_temp[j: j+self.window_size, 2:])
+                    rul = len(data_temp) - self.window_size - j
+                    if rul > self.max_rul:
+                        rul = self.max_rul
+                    self.y.append(rul)
+
+        if self.mode == 'test':
+            for i in range(1, self.sample_num + 1):
+                ind = np.where(self.data[:, 0] == i)[0]
+                data_temp = self.data[ind, :]
+                '''
+                    When the number of data for a turbofan engine on the testset is less than the window length, 
+                    an interpolation operation will be performed
+                '''
+                if len(data_temp) < self.window_size:
+                    data = np.zeros((self.window_size, data_temp.shape[1]), dtype=np.float64)
+                    for j in range(data.shape[1]):
+                        x_old = np.linspace(0, len(data_temp)-1, len(data_temp))
+                        params = np.polyfit(x_old, data_temp[:, j].flatten(), deg=1)
+                        k = params[0]
+                        b = params[1]
+                        x_new = np.linspace(0, self.window_size-1, self.window_size, dtype=np.float64)
+                        data[:, j] = (x_new * len(data_temp) / self.window_size * k + b)
+                    self.x.append(data[-self.window_size:, 2:])
+                else:
+                    self.x.append(data_temp[-self.window_size:, 2:])
+                rul = self.rul_result[i - 1]
+                if rul > self.max_rul:
+                    rul = self.max_rul
+                self.y.append(rul)
+
+        self.x = np.array(self.x)
+        self.y = np.array(self.y)/self.max_rul
+        for i in range(len(self.x)):
+            one_sample = self.x[i]
+            self.mean_and_coef.append(self.fea_extract(one_sample))
+        self.mean_and_coef = np.array(self.mean_and_coef)
+
+    @staticmethod
+    def fea_extract(data):
+        fea = []
+        x = np.array(range(data.shape[0]))
+        for i in range(data.shape[1]):
+            fea.append(np.mean(data[:, i]))
+            fea.append(np.polyfit(x.flatten(), data[:, i].flatten(), deg=1)[0])
+        return fea
 
     def __len__(self):
-        if self.mode == 'train':
-            total_length = 0
-            for ID in range(int(self.sample_num)):
-                max_time = self.max_time_cycle(engineID=ID + 1)
-                total_length += max_time - self.window_size + 1
-                self.length.append(total_length)
-            return total_length
-
-        if self.mode == 'test':
-            total_length = self.rul_result.shape[0]
-            return total_length
+        return len(self.y)
 
     def __getitem__(self, index):
-        if self.mode == 'train':
-            ID = 0
-            row = 0
-            idx_in_sample = index + 1
-            for i in self.length:
-                if index + 1 > i:
-                    ID += 1
-                    idx_in_sample = index + 1 - i
-                if index + 1 <= i:
-                    break
+        x_tensor = torch.from_numpy(self.x[index]).to(torch.float32)
+        y_tensor = torch.Tensor([self.y[index]]).to(torch.float32)
+        handcrafted_features = torch.from_numpy(self.mean_and_coef[index]).to(torch.float32)
+        return x_tensor, handcrafted_features, y_tensor
 
-            for i in range(ID):
-                row += self.max_time_cycle(engineID=i + 1)
 
-            row += idx_in_sample
-            start_row_idx = row - 1
-            end_row_idx = start_row_idx + self.window_size
-            rul = self.max_time_cycle(engineID=ID + 1) - self.data[end_row_idx - 1][1]
 
-        if self.mode == 'test':
-            end_row_idx = np.where(self.data[:, [0]] == index + 1)[0][-1] + 1
-            start_row_idx = end_row_idx - self.window_size
-            rul = self.rul_result[index]
 
-        inputs_numpy = self.data[start_row_idx:end_row_idx, [2, 3, 4, 6, 7, 8,
-                                                             11, 12, 13, 15, 16,
-                                                             17, 18, 19, 21, 24, 25]]
-        inputs = torch.from_numpy(inputs_numpy)
-        if rul > self.max_rul:
-            rul = self.max_rul
-        label = torch.Tensor([rul / int(self.max_rul)])
-        handcrafted_feature = torch.from_numpy(self.handcrafted_features[index])
-        return inputs, handcrafted_feature, label
