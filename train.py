@@ -36,22 +36,33 @@ class Trainer:
                                                                         ))
                 running_loss = 0
 
-    def train(self, train_loader, test_loader):
+    def train(self, train_loader, test_loader, iteration):
         for epoch in range(self.epochs):
             print('Epoch: {}'.format(epoch + 1))
             self.model.train()
             self.train_single_epoch(train_loader)
-            self.test(test_loader)
-            self.save_checkpoints(epoch + 1)
+            current_score, current_RMSE = self.test(test_loader)
+            if epoch == 0:
+                best_score = current_score
+                best_RMSE = current_RMSE
+            else:
+                if current_score < best_score:
+                    best_score = current_score
+                    self.save_checkpoints(iteration + 1, epoch + 1, 'best_score')
+                if current_RMSE < best_RMSE:
+                    best_RMSE = current_RMSE
+                    self.save_checkpoints(iteration + 1, epoch + 1, 'best_RMSE')
+        return float(best_score), float(best_RMSE)
 
-    def save_checkpoints(self, epoch):
+    def save_checkpoints(self, iteration, epoch, which_type):
         state = {
+            'iter': iteration,
             'epoch': epoch,
             'state_dict': self.model.state_dict(),
             'optim_dict': self.model_optimizer.state_dict()
         }
-        torch.save(state, './checkpoints/' + self.prefix + '_' + str(epoch) + '.pth.tar')
-        print('checkpoints saved successfully!')
+        torch.save(state, './checkpoints/{}_iteration{}_{}.pth.tar'.format(self.prefix, iteration, which_type))
+        print('{}_checkpoints saved successfully!'.format(which_type))
 
     @staticmethod
     def score(y_true, y_pred):
@@ -79,6 +90,7 @@ class Trainer:
                     don't change the multiplier(130 or 150) here unless you changed the value of max_rul in turbofandataset.py
                 '''
                 score += self.score(labels * 150, predictions * 150)
-                loss += criterion(labels * 150, predictions * 150)
-
-        print('test result: score: {}, RMSE: {}'.format(score.item(), loss ** 0.5))
+                loss += criterion(labels * 150, predictions * 150) * len(labels)
+        loss = (loss / len(test_loader.dataset)) ** 0.5
+        print('test result: score: {}, RMSE: {}'.format(score.item(), loss))
+        return score.item(), loss

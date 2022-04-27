@@ -61,9 +61,9 @@ class Turbofandataset(Dataset):
                     an interpolation operation will be performed
                 '''
                 if len(data_temp) < self.window_size:
-                    data = np.zeros((self.window_size, data_temp.shape[1]), dtype=np.float64)
+                    data = np.zeros((self.window_size, data_temp.shape[1]))
                     for j in range(data.shape[1]):
-                        x_old = np.linspace(0, len(data_temp)-1, len(data_temp))
+                        x_old = np.linspace(0, len(data_temp)-1, len(data_temp), dtype=np.float64)
                         params = np.polyfit(x_old, data_temp[:, j].flatten(), deg=1)
                         k = params[0]
                         b = params[1]
@@ -82,6 +82,11 @@ class Turbofandataset(Dataset):
         for i in range(len(self.x)):
             one_sample = self.x[i]
             self.mean_and_coef.append(self.fea_extract(one_sample))
+
+        mu = np.mean(self.mean_and_coef, axis=0)
+        sigma = np.std(self.mean_and_coef, axis=0)
+        eps = 1e-10
+        self.mean_and_coef = (self.mean_and_coef - mu) / (sigma + eps)
         self.mean_and_coef = np.array(self.mean_and_coef)
 
     @staticmethod

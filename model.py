@@ -10,14 +10,14 @@ class Model(nn.Module):
         self.linear = nn.Sequential(
             nn.Linear(in_features=1500, out_features=50),
             nn.ReLU(inplace=True),
-            nn.Dropout(p=0.1),
+            nn.Dropout(p=0.2),
             nn.Linear(in_features=50, out_features=10),
             nn.ReLU(inplace=True)
         )
         self.handcrafted = nn.Sequential(
             nn.Linear(in_features=34, out_features=10),
             nn.ReLU(inplace=True),
-            nn.Dropout(p=0.1)
+            nn.Dropout(p=0.2)
         )
 
         self.output = nn.Sequential(
@@ -50,5 +50,6 @@ class Attention3dBlock(nn.Module):
         x = inputs.permute(0, 2, 1)
         x = self.linear(x)
         x_probs = x.permute(0, 2, 1)
+        # print(torch.sum(x_probs.item()))
         output = x_probs * inputs
         return output
