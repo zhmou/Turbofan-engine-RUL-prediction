@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     best_score_list = []
     best_RMSE_list = []
-    for iteration in range(2):
+    for iteration in range(10):
         print('---Iteration: {}---'.format(iteration + 1))
         model = Model()
         optimizer = optim.Adam(model.parameters(), lr=1e-3)
@@ -37,5 +37,5 @@ if __name__ == '__main__':
 
     best_score_list = np.array(best_score_list)
     best_RMSE_list = np.array(best_RMSE_list)
-    result = np.concatenate((best_score_list, best_RMSE_list)).reshape(2, 2)
+    result = np.concatenate((best_score_list, best_RMSE_list)).reshape(2, 10)
     np.savetxt('./{}_result.txt'.format(trainer.prefix), result, fmt='%.4f')
