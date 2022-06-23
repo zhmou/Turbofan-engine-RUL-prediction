@@ -54,7 +54,7 @@ The attention matrix will make a dot product with the feature map and flatten to
 
 Take a look at the right-side part. for every column of each sample, there are two handcrafted features can be extracted: mean value and trend coefficient(or you can say the slope of the line fitted to these 30 points in one column). Since each sample has 17 columns, we can obtain a 1D vector of length 34. As before, after a linear layer, we get a vector of length 10.
 
-We concatenate these two vectors and get a 1D vector of length 20. The finally thing is to pass through a output layer and our predicted RUL value. (Note that the label of the dataset is normalized by dividing by the max_rul. )
+We concatenate these two vectors and get a 1D vector of length 20. The finally thing is to pass through a output layer and get our predicted RUL value. (Note that the label of the dataset is normalized by dividing by the max_rul. )
 
 
 ## Eval Metrics
