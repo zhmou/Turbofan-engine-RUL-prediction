@@ -42,6 +42,8 @@ When the output from the console looks like this, **congratulations**, the netwo
 ![image](https://user-images.githubusercontent.com/43105172/165487346-7618b07c-3f06-448f-8000-ba80eafbe93d.png)  
 The program will save the model parameters at <code>./checkpoints/</code> automaticlly during every iteration when it found a better result.
 
+<ins>**Based on the feedback, you will need to manually create this folder (<code>./checkpoints/</code>) in the current path to avoid reporting an error.**</ins>
+
 After 10 iterations(32 epochs per iteration), best result of each iteration under eval metrics would save to a txt like this:  
 ![image](https://user-images.githubusercontent.com/43105172/165488259-6da54a06-0aae-4322-ab92-b5ca8fa5e0d3.png)
 
