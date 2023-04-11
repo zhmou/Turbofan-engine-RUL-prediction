@@ -81,4 +81,4 @@ My results(10 best result of every iteration):
 On FD004, the results reproduced using PyTorch differ slightly from those of the original paper, which can be seen is that in my results. The 10 best results are more **spread out** compared to original authors' paper:
 ![image](https://user-images.githubusercontent.com/43105172/165689516-18251719-709c-48d0-a318-af35beda31d8.png)  
 
-I am trying to figure out the cause of this problem, if you have a good idea please [post a issue](https://github.com/zhmou/zhmou.github.io/issues/new) and let me know, thanks gratefully!
+I am trying to figure out the cause of this problem, if you have a good idea please [post a issue](https://github.com/zhmou/Turbofan-engine-RUL-prediction/issues/new) and let me know, thanks gratefully!
